@@ -1,0 +1,6 @@
+
+V
+squid:S106"9Replace this use of System.out or System.err by a logger.(‹Ò¯8” ®€€.
+lsquid:S3014"IRemove this use of "ThreadGroup". Prefer the use of "ThreadPoolExecutor".(Æ¯å‰ûÿÿÿÿ8•Ï®€€.
+V
+squid:S106"9Replace this use of System.out or System.err by a logger.(ÆÀûı8” ®€€.

@@ -1,0 +1,8 @@
+
+lsquid:S3014"IRemove this use of "ThreadGroup". Prefer the use of "ThreadPoolExecutor".(‡Äù¢úÿÿÿÿ8ÕÊèşÿ-
+dsquid:S2142	"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8ÕÊèşÿ-
+Fsquid:S1148
+"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8ÕÊèşÿ-
+lsquid:S3014"IRemove this use of "ThreadGroup". Prefer the use of "ThreadPoolExecutor".(Æ¯å‰ûÿÿÿÿ8ÕÊèşÿ-
+V
+squid:S106"9Replace this use of System.out or System.err by a logger.(‹Ò¯8ÕÊèşÿ-
