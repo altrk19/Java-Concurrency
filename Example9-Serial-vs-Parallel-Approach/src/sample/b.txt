@@ -1,0 +1,890 @@
+package com.genband.app.chatbroker.handlers;
+
+import com.genband.app.chatbroker.utils.GenericAppUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import com.genband.app.chatbroker.constants.ChatResourceType;
+import com.genband.app.chatbroker.constants.MsName;
+import com.genband.app.chatbroker.constants.OmaErrorMessageType;
+import com.genband.app.chatbroker.constants.PathType;
+import com.genband.app.chatbroker.constants.ServiceAction;
+import com.genband.app.chatbroker.entities.messaging.HttpParams;
+import com.genband.app.chatbroker.entities.messaging.ServiceData;
+import com.genband.app.chatbroker.entities.provisioning.User;
+import com.genband.app.chatbroker.utils.ApiRequestPathUtils;
+import com.genband.app.chatbroker.utils.UmlVisualizationUtil;
+import com.genband.app.chatbroker.validation.JsonSchemaValidator;
+import com.genband.app.chatbroker.validation.UserInputValidationException;
+import com.genband.app.chatbroker.validation.UserInputValidator;
+import com.genband.util.broker.MessagingService;
+import com.genband.util.broker.model.Message;
+import com.genband.util.broker.model.MessageParams;
+import com.genband.util.broker.model.MessageType;
+import com.genband.util.broker.model.OperationReceipt;
+import com.genband.util.broker.util.MessageFactory;
+import com.genband.util.log.slf4j.GbLoggerImpl;
+import com.genband.util.provisioning.ComponentType;
+import com.genband.util.provisioning.PoviderIdentity;
+import com.genband.util.provisioning.ProvisioningService;
+
+@Service
+public class IncomingAmqpHandler {
+  private static GbLoggerImpl log = GbLoggerImpl.create();
+
+  @Autowired
+  private MessagingService msgSvc;
+
+  @Autowired
+  private OutgoingAmqpHandler amqpSender;
+
+  @Autowired
+  private ApiRequestPathUtils apiRequestPathUtils;
+
+  @Autowired
+  private SubscriptionSmTriggerHandler subscriptionSmTriggerer;
+
+  @Autowired
+  private SubscriptionQueryHandler subscriptionQueryHandler;
+
+  @Autowired
+  private ChatMsgHandler chatMsgHandler;
+
+  @Autowired
+  private NotificationSmTriggerHandler notificationSmTriggerer;
+
+  @Autowired
+  private NotificationHandler notificationHandler;
+
+  @Autowired
+  private JsonSchemaValidator jsonValidator;
+
+  @Autowired
+  private UserInputValidator uiValidator;
+
+  @Autowired
+  private GenericAppUtils genericAppUtils;
+  /**
+   * Handle reception of message with a known routingKey
+   *
+   * @param incomingMessage
+   * @return
+   */
+  public boolean handleRoutedMessage(final Message incomingMessage) {
+    // First we'll check the basic integrity of the message
+    if (!criticalMessageComponentsMissing(incomingMessage)) {
+      final String subscriber = incomingMessage.getMessageParams().getSubscriber();
+
+      // Next, we cannot proceed without a subscriber, so we'll check that
+      if (subscriber == null || subscriber.isEmpty()) {
+        log.error("No Subscriber, Terminating!");
+        return false;
+      }
+
+      // Then, we'll validate the serviceData and map it into our message object
+      if (validateAndMapServiceData(incomingMessage)) {
+
+        // Finally we'll pass this message along to be processed by the state machine
+        handleIncomingAmqpMessage(incomingMessage);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Handle reception of message with an unknown routingKey
+   *
+   * @param incomingMessage
+   * @return
+   */
+  public boolean handleUnroutedMessage(final Message incomingMessage) {
+    // First we'll check the basic integrity of the message
+    if (criticalMessageComponentsMissing(incomingMessage)) {
+      return false;
+    }
+
+    final String subscriber = incomingMessage.getMessageParams().getSubscriber();
+
+    // Next, we cannot proceed without a subscriber, so we'll check that
+    if (subscriber == null || subscriber.isEmpty()) {
+      log.error("No subscriber, terminating!");
+      return false;
+    }
+
+    // Then, we'll validate the serviceData and map it into our message object
+    if (!validateAndMapServiceData(incomingMessage)) {
+      return false;
+    }
+
+    // Since it's an unrouted message, it's a new user & we'll therefore bind the routing key
+    log.debug("Received message in unallocated channel; now binding routing key:{}", subscriber);
+    final OperationReceipt bindReceipt = msgSvc.bindRoutingKey(subscriber);
+
+    // If the routing key binding fails, we'll return the message back to the exchange & return
+    if (!bindReceipt.isOperationStatus()) {
+      log.debug("Unable to bind key: {} ; sending message back to exchange." , subscriber);
+
+      try {
+        msgSvc.returnMessage(incomingMessage, subscriber);
+      } catch (final Exception ex) {
+        log.error("Unable to send message back to exchange.", ex);
+      }
+
+      return false;
+    }
+
+    // Finally we'll pass this message along to be processed by the routing logic
+    handleIncomingAmqpMessage(incomingMessage);
+    return true;
+  }
+
+  /**
+   * Checks to see if the messageParams and serviceData can be parsed. If they can't it returns
+   * false with an error message & sends a failure response out.
+   *
+   * @param incomingMessage
+   * @return
+   */
+  private boolean criticalMessageComponentsMissing(final Message incomingMessage) {
+    if (incomingMessage.getMessageParams() == null || incomingMessage.getServiceData() == null) {
+      log.error("Basic components of the incoming message cannot be parsed or are null.");
+
+      if (MessageType.request.equals(incomingMessage.getMessageParams().getType())) {
+        sendSeriousErrorFailureMessage(incomingMessage);
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Handles the routing of an incoming amqp message. It tries to determine the action to be
+   * performed based on the serviceAction of the incoming message. Some different actions have the
+   * same serviceAction though, so it delegates this routing to another method.
+   *
+   * @param incomingMessage
+   */
+  private void handleIncomingAmqpMessage(final Message incomingMessage) {
+    final MessageParams messageParams = incomingMessage.getMessageParams();
+    final MessageType type = messageParams.getType();
+    final String serviceAction = incomingMessage.getServiceAction();
+
+    // We'll check for null values for some critical components
+    if (type == null || serviceAction == null) {
+      log.error("Critical components are null; cannot proceed. Incoming message is : {}", incomingMessage);
+
+      if (MessageType.request.equals(incomingMessage.getMessageParams().getType())) {
+        sendSeriousErrorFailureMessage(incomingMessage);
+      }
+      return;
+    }
+
+    switch (type) {
+      case request:
+        if (!uiValidator.isUserSuspendedOrDeleted(incomingMessage, messageParams.getSubscriber())) {
+          handleIncomingRequest(incomingMessage, serviceAction);
+        }
+        break;
+      case response:
+        handleIncomingResponse(incomingMessage, serviceAction);
+        break;
+      case notification:
+        handleIncomingNotification(incomingMessage, serviceAction);
+        break;
+      default:
+        log.debug("Message type cannot be identified!");
+        sendSeriousErrorFailureMessage(incomingMessage);
+        break;
+    }
+  }
+
+  /**
+   * Handles incoming messages which have "request" messageType
+   *
+   * @param incomingMessage
+   * @param serviceAction
+   */
+  private void handleIncomingRequest(final Message incomingMessage, final String serviceAction) {
+    UmlVisualizationUtil.logRequest(incomingMessage);
+    ServiceAction enumServiceAction = ServiceAction.valueOf(serviceAction);
+
+    switch (enumServiceAction) {
+      case chat:
+        handleChatServiceActionRequest(incomingMessage);
+        break;
+      case receiveMessage:
+        log.debug("Incoming message is an incoming receiveMessage notification request.");
+        notificationSmTriggerer.triggerNotificationRequest(incomingMessage, enumServiceAction);
+        break;
+      default:
+        log.debug("Incoming request has an unhandled serviceAction:{} cannot proceed!", serviceAction);
+        sendSeriousErrorFailureMessage(incomingMessage);
+        break;
+    }
+  }
+
+  /**
+   * Handles routing of the "chat" serviceAction. It determines what to do based on the resource
+   * contained in the path, the http verb found in the HttpParams and the overall structure of the
+   * path.
+   *
+   * @param incomingMessage
+   */
+  private void handleChatServiceActionRequest(final Message incomingMessage) {
+    // First, we'll extract all the data we need in order to determine what kind of
+    // request this is
+    HttpParams httpParams;
+    HttpMethod httpMethod;
+    String path;
+    String[] pathComponents = null;
+    ChatResourceType resourceType;
+    PathType pathType;
+
+    try {
+      httpParams = ((ServiceData) incomingMessage.getServiceData()).getHttpParams();
+      httpMethod = HttpMethod.valueOf(httpParams.getVerb());
+
+      if (httpMethod == null) {
+        throw new NullPointerException("Http method cannot be parsed!");
+      }
+
+      // Since we expect messages with serviceAction "chat" to be coming from the
+      // restgateway, we
+      // expect the incoming message to have a "path" field that we need to parse in
+      // order to get
+      // some useful information about this request. Since we'll need this path data
+      // for future
+      // processing, we'll extract the pathComponents here.
+      path = httpParams.getPath();
+      pathComponents = StringUtils.split(path, "/");
+
+      // Next, we'll extract the resource that the chat request is trying to access
+      resourceType = apiRequestPathUtils.getResourceTypeFromPathComponents(pathComponents);
+
+      // Next, we'll extract the pathType of the request
+      pathType = apiRequestPathUtils.getPathTypeFromPathComponentsAndResourceType(pathComponents,
+          resourceType, httpMethod);
+
+      if (PathType.INVALID.equals(pathType)) {
+        sendResourceNotFoundFailureMessage(incomingMessage);
+        return;
+      }
+    } catch (final IllegalArgumentException ex1) {
+      log.debug("Resource type not found in path components: {}", pathComponents);
+      sendResourceNotFoundFailureMessage(incomingMessage);
+      return;
+    } catch (final Exception ex2) {
+      log.debug("Incoming message handling has encountered the following exception: ", ex2);
+      sendSeriousErrorFailureMessage(incomingMessage);
+      return;
+    }
+
+    final String providerUserId = genericAppUtils.getProviderUserId(incomingMessage);
+    if (providerUserId == null) {
+      OmaErrorMessageType omaFailure = OmaErrorMessageType.USER_PROVISIONING_MESSAGE;
+      String[] variables = {"Any chat service backend identity cannot be found."};
+      amqpSender.sendOmaFailureResponse(incomingMessage, omaFailure.getMessageId(),
+          omaFailure.getText(), variables, HttpStatus.SERVICE_UNAVAILABLE);
+      return;
+    }
+
+    // Now we'll switch on the behaviour of the resource
+    switch (resourceType) {
+      case SESSIONS:
+        handleSessionsResource(httpMethod, pathType, pathComponents, incomingMessage,
+            providerUserId);
+        break;
+      case SUBSCRIPTIONS:
+        handleSubscriptionsResource(httpMethod, pathType, pathComponents, incomingMessage);
+        break;
+      case ONETOONE:
+        handleOneToOneResource(httpMethod, pathType, pathComponents, incomingMessage,
+            providerUserId);
+        break;
+      case GROUP:
+        handleGroupResource(httpMethod, pathType, pathComponents, incomingMessage, providerUserId);
+        break;
+      default:
+        log.debug("Resource is currently unhandled:{}", resourceType);
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.NOT_FOUND);
+        break;
+    }
+  }
+
+  /**
+   * Handles incoming messages with resourceType "sessions". Resource is determined by the value in
+   * the path: /{serverRoot}/chat/{apiVersion}/{userId}/{resourceType}
+   * 
+   * @param httpMethod
+   * @param pathType
+   * @param pathComponents
+   * @param incomingMessage
+   */
+  private void handleSessionsResource(final HttpMethod httpMethod, final PathType pathType,
+      final String[] pathComponents, final Message incomingMessage, final String providerUserId) {
+    // First thing we'll do is validate that the incoming path is valid for this
+    // resource
+    if (!apiRequestPathUtils.validateSessionsResourceRequestPath(incomingMessage, pathType,
+        httpMethod)) {
+      return;
+    }
+
+    chatMsgHandler.triggerChatSessionQueryRequest(incomingMessage, pathType, null, true,
+        pathComponents, providerUserId);
+  }
+
+  /**
+   * Handles incoming messages with resourceType "subscriptions". Resource is determined by the
+   * value in the path: /{serverRoot}/chat/{apiVersion}/{userId}/{resourceType}
+   *
+   * @param httpMethod
+   * @param pathType
+   * @param pathComponents
+   * @param incomingMessage
+   */
+  private void handleSubscriptionsResource(final HttpMethod httpMethod, final PathType pathType,
+      final String[] pathComponents, final Message incomingMessage) {
+    // First thing we'll do is validate that the incoming path is valid for this
+    // resource
+    if (!apiRequestPathUtils.validateSubscriptionResourceRequestPath(incomingMessage, pathType,
+        httpMethod)) {
+      return;
+    }
+
+    // Switch behaviour on the incoming httpMethod
+    switch (httpMethod) {
+      case POST:
+        log.debug("Incoming message is a subscription request.");
+        subscriptionSmTriggerer.triggerSubscriptionRequest(incomingMessage);
+        break;
+      case DELETE:
+        log.debug("Incoming message is a deletion request.");
+        subscriptionSmTriggerer.triggerDeletionRequest(incomingMessage, pathComponents);
+        break;
+      case GET:
+        log.debug("Incoming message is a subscription query request.");
+        subscriptionQueryHandler.handleSubscriptionQuery(incomingMessage, pathType, pathComponents);
+        break;
+      default:
+        log.debug("HttpMethod : {} is currently unhandled for 'subscriptions' resource", httpMethod);
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.METHOD_NOT_ALLOWED);
+        break;
+    }
+  }
+
+  /**
+   * Handles incoming messages with resourceType "oneToOne". Resource is determined by the value in
+   * the path: /{serverRoot}/chat/{apiVersion}/{userId}/{resourceType}
+   *
+   * @param httpMethod
+   * @param pathType
+   * @param pathComponents
+   * @param incomingMessage
+   */
+  private void handleOneToOneResource(final HttpMethod httpMethod, final PathType pathType,
+      final String[] pathComponents, final Message incomingMessage, final String providerUserId) {
+    // First thing we'll do is validate that the incoming path is valid for this
+    // resource
+    if (!apiRequestPathUtils.validateOneToOneResourceRequestPath(incomingMessage, pathType,
+        httpMethod)) {
+      return;
+    }
+
+    // We will validate destination address in the request path .TN format is not acceptable and
+    // SenderSipDomain must be equal to the DestinationSipDomain
+    // PathType.ONE_TO_ONE_SESSIONS path doesn't contain destination address.
+    if (!pathType.equals(PathType.ONE_TO_ONE_SESSIONS)) {
+      if (!uiValidator.validateOneToOneChatUsersInSameAccount(incomingMessage, providerUserId)) {
+        return;
+      }
+    }
+
+
+    // Switch behaviour on the incoming httpMethod
+    switch (httpMethod) {
+      case POST:
+        handleOneToOnePostMethod(incomingMessage, pathType, pathComponents, providerUserId);
+        break;
+      case PUT:
+        log.debug("Incoming message is a client send oneToOne display report request.");
+        chatMsgHandler.triggerDisplayReportRequest(incomingMessage, ChatResourceType.ONETOONE,
+            pathComponents, providerUserId);
+        break;
+      case GET:
+        handleOneToOneGetMethod(incomingMessage, pathType, pathComponents, providerUserId);
+        break;
+      case DELETE:
+        log.debug("Incoming message is a oneToOne chat message deletion request.");
+        chatMsgHandler.triggerMessageDeletionRequest(incomingMessage, pathType,
+            ChatResourceType.ONETOONE, pathComponents);
+        break;
+      default:
+        log.debug("HttpMethod:{} is currently unhandled for oneToOne resource", httpMethod);
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.METHOD_NOT_ALLOWED);
+        break;
+    }
+  }
+
+  /**
+   *
+   * @param incomingMessage
+   * @param pathType
+   * @param pathComponents
+   */
+  private void handleOneToOnePostMethod(final Message incomingMessage, final PathType pathType,
+      final String[] pathComponents, final String providerUserId) {
+    switch (pathType) {
+      case ONE_TO_ONE_MESSAGES:
+        log.debug("Incoming message is a client send oneToOne message request.");
+        chatMsgHandler.triggerClientSendMsgRequest(incomingMessage, ChatResourceType.ONETOONE,
+            pathComponents, providerUserId);
+        break;
+      case ONE_TO_ONE_EXTEND:
+        log.debug("Incoming message is an extend oneToOne to group session request.");
+        chatMsgHandler.triggerExtendToGroupRequest(incomingMessage, pathComponents, providerUserId);
+        break;
+      default:
+        log.debug("Malformed oneToOne POST path!");
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.NOT_FOUND);
+        break;
+    }
+  }
+
+  /**
+   *
+   * @param incomingMessage
+   * @param pathType
+   * @param pathComponents
+   */
+  private void handleOneToOneGetMethod(final Message incomingMessage, final PathType pathType,
+      final String[] pathComponents, final String providerUserId) {
+    switch (pathType) {
+      case ONE_TO_ONE_SESSIONS:
+      case ONE_TO_ONE_RECIPIENT_SESSIONS:
+        log.debug("Incoming message is a multi oneToOne chat sessions query request.");
+        chatMsgHandler.triggerChatSessionQueryRequest(incomingMessage, pathType,
+            ChatResourceType.ONETOONE, true, pathComponents, providerUserId);
+        break;
+      case ONE_TO_ONE_ADHOC_SESSION:
+        log.debug("Incoming message is a single oneToOne chat session query request.");
+        chatMsgHandler.triggerChatSessionQueryRequest(incomingMessage, pathType,
+            ChatResourceType.ONETOONE, false, pathComponents, providerUserId);
+        break;
+      case ONE_TO_ONE_MESSAGES:
+      case ONE_TO_ONE_MSG_ID:
+        log.debug("Incoming message is a oneToOne message retrieval request.");
+        chatMsgHandler.triggerMessageRetrievalRequest(incomingMessage, pathType,
+            ChatResourceType.ONETOONE, pathComponents, providerUserId);
+        break;
+      case ONE_TO_ONE_STATUS:
+        log.debug("Incoming message is a query oneToOne message status request.");
+        chatMsgHandler.triggerQueryMsgStatusRequest(incomingMessage, ChatResourceType.ONETOONE,
+            pathComponents, providerUserId);
+        break;
+      default:
+        log.debug("Malformed oneToOne GET path!");
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.NOT_FOUND);
+        break;
+    }
+  }
+
+  /**
+   * Handles incoming messages with resourceType "group". Resource is determined by the value in the
+   * path: /{serverRoot}/chat/{apiVersion}/{userId}/{resourceType}
+   *
+   * @param httpMethod
+   * @param pathType
+   * @param pathComponents
+   * @param incomingMessage
+   */
+  private void handleGroupResource(final HttpMethod httpMethod, final PathType pathType,
+      final String[] pathComponents, final Message incomingMessage, String providerUserId) {
+    // First thing we'll do is validate that the incoming path is valid for this
+    // resource
+    if (!apiRequestPathUtils.validateGroupResourceRequestPath(incomingMessage, pathType,
+        httpMethod)) {
+      return;
+    }
+
+    // Switch behaviour on the incoming httpMethod
+    switch (httpMethod) {
+      case POST:
+        handleGroupPostMethod(incomingMessage, pathType, pathComponents, providerUserId);
+        break;
+      case DELETE:
+        handleGroupDeleteMethod(incomingMessage, pathType, pathComponents, providerUserId);
+        break;
+      case PUT:
+        handleGroupPutMethod(incomingMessage, pathType, pathComponents, providerUserId);
+        break;
+      case GET:
+        handleGroupGetMethod(incomingMessage, pathType, pathComponents, providerUserId);
+        break;
+      default:
+        log.debug("HttpMethod:{} is currently unhandled for 'group' resource", httpMethod);
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.METHOD_NOT_ALLOWED);
+        break;
+    }
+  }
+
+  /**
+   * 
+   * @param incomingMessage
+   * @param pathType
+   * @param pathComponents
+   */
+  private void handleGroupPostMethod(final Message incomingMessage, final PathType pathType,
+      final String[] pathComponents, final String providerUserId) {
+    switch (pathType) {
+      case BASIC_RESOURCE:
+        log.debug("Incoming message is a group session creation request.");
+        chatMsgHandler.triggerGroupCreationRequest(incomingMessage, providerUserId);
+        break;
+      case GROUP_PARTICIPANTS:
+        log.debug("Incoming message is a group participant addition request.");
+        chatMsgHandler.triggerAddParticipantRequest(incomingMessage, pathComponents,
+            providerUserId);
+        break;
+      case GROUP_MESSAGES:
+        log.debug("Incoming message is a client send group message request");
+        chatMsgHandler.triggerClientSendMsgRequest(incomingMessage, ChatResourceType.GROUP,
+            pathComponents, providerUserId);
+        break;
+      default:
+        log.debug("Malformed group POST path!");
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.NOT_FOUND);
+        break;
+    }
+  }
+
+  /**
+   * 
+   * @param incomingMessage
+   * @param pathType
+   * @param pathComponents
+   */
+  private void handleGroupDeleteMethod(final Message incomingMessage, final PathType pathType,
+      final String[] pathComponents, final String providerUserId) {
+    switch (pathType) {
+      case GROUP_ID:
+        log.debug("Incoming message is a group session deletion request.");
+        chatMsgHandler.triggerGroupSessionDeletionRequest(incomingMessage, pathComponents,
+            providerUserId);
+        break;
+      case GROUP_PARTICP_ID:
+        log.debug("Incoming message is a participant removal / decline invitation request.");
+        chatMsgHandler.triggerRemoveParticipantRequest(incomingMessage, pathComponents,
+            providerUserId);
+        break;
+      case GROUP_MESSAGES:
+      case GROUP_MESSAGE_ID:
+        log.debug("Incoming message is a delete group message(s) request.");
+        chatMsgHandler.triggerMessageDeletionRequest(incomingMessage, pathType,
+            ChatResourceType.GROUP, pathComponents);
+        break;
+      default:
+        log.debug("Malformed group DELETE path!");
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.NOT_FOUND);
+        break;
+    }
+  }
+
+  /**
+   * 
+   * @param incomingMessage
+   * @param pathType
+   * @param pathComponents
+   */
+  private void handleGroupPutMethod(final Message incomingMessage, final PathType pathType,
+      final String[] pathComponents, final String providerUserId) {
+    switch (pathType) {
+      case GROUP_PARTICP_STATUS:
+        log.debug("Incoming message is a group session invitation acceptance request.");
+        chatMsgHandler.triggerAcceptGroupInvitationRequest(incomingMessage, pathComponents,
+            providerUserId);
+        break;
+      case GROUP_MSG_STATUS_WITH_PARTICP:
+        log.debug("Incoming message is a client send group display report request.");
+        chatMsgHandler.triggerDisplayReportRequest(incomingMessage, ChatResourceType.GROUP,
+            pathComponents, providerUserId);
+        break;
+      case GROUP_PROPERTIES_UPDATE:
+        log.debug("Incoming message is an update group properties request.");
+        chatMsgHandler.triggerUpdateGroupPropertiesRequest(
+            incomingMessage, pathComponents, providerUserId);
+        break;
+      case GROUP_PARTICP_ID:
+        log.debug("Incomming message is a group session adding admin request.");
+        chatMsgHandler.triggerGroupAdminAddingRequest(incomingMessage, pathComponents, providerUserId);
+        break;
+      default:
+        log.debug("Malformed group PUT path!");
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.NOT_FOUND);
+        break;
+    }
+  }
+
+  /**
+   * 
+   * @param incomingMessage
+   * @param pathType
+   * @param pathComponents
+   */
+  private void handleGroupGetMethod(final Message incomingMessage, final PathType pathType,
+      final String[] pathComponents, final String providerUserId) {
+    switch (pathType) {
+      case BASIC_RESOURCE:
+      case GROUP_ID:
+        log.debug("Incoming message is a query group session info(s) request.");
+        chatMsgHandler.triggerGroupSessionInfoQueryRequest(incomingMessage, pathType,
+            pathComponents, providerUserId);
+        break;
+      case GROUP_SESSIONS:
+        log.debug("Incoming message is a multi group chat sessions query request.");
+        chatMsgHandler.triggerChatSessionQueryRequest(incomingMessage, pathType,
+            ChatResourceType.GROUP, true, pathComponents, providerUserId);
+        break;
+      case GROUP_ID_SESSION:
+        log.debug("Incoming message is a single group chat session query request.");
+        chatMsgHandler.triggerChatSessionQueryRequest(incomingMessage, pathType,
+            ChatResourceType.GROUP, false, pathComponents, providerUserId);
+        break;
+      case GROUP_PARTICIPANTS:
+      case GROUP_PARTICP_ID:
+        log.debug("Incoming message is a query group session participant(s) request.");
+        chatMsgHandler.triggerGroupParticipantQueryRequest(incomingMessage, pathType,
+            pathComponents, providerUserId);
+        break;
+      case GROUP_MESSAGES:
+      case GROUP_MESSAGE_ID:
+        log.debug("Incoming message is a query group message(s) request.");
+        chatMsgHandler.triggerMessageRetrievalRequest(incomingMessage, pathType,
+            ChatResourceType.GROUP, pathComponents, providerUserId);
+        break;
+      case GROUP_MSG_STATUS:
+        log.debug("Incoming message is a query group message status request.");
+        chatMsgHandler.triggerQueryMsgStatusRequest(incomingMessage, ChatResourceType.GROUP,
+            pathComponents, providerUserId);
+        break;
+      default:
+        log.debug("Malformed group GET path!");
+        amqpSender.sendBasicFailureResponse(incomingMessage, HttpStatus.NOT_FOUND);
+        break;
+    }
+  }
+
+  /**
+   * Handles incoming messages which have "response" messageType
+   *
+   * @param incomingMessage
+   * @param serviceAction
+   */
+  private void handleIncomingResponse(final Message incomingMessage, final String serviceAction) {
+    UmlVisualizationUtil.logResponse(incomingMessage);
+    ServiceAction enumServiceAction = ServiceAction.valueOf(serviceAction);
+
+    switch (enumServiceAction) {
+      case subscribe:
+        log.debug("Incoming message is a subscription response.");
+        subscriptionSmTriggerer.triggerSubscriptionResponse(incomingMessage);
+        break;
+      case unsubscribe:
+        log.debug("Incoming message is a deletion response.");
+        subscriptionSmTriggerer.triggerDeletionResponse(incomingMessage);
+        break;
+      case queryUser:
+        log.debug("Incoming message is an authorization response.");
+        subscriptionSmTriggerer.triggerAuthorizationResponse(incomingMessage);
+        break;
+      case sendMessage:
+        log.debug("Incoming message is a client send msg response.");
+        chatMsgHandler.triggerClientSendMsgResponse(incomingMessage);
+        break;
+      case isComposing:
+        log.debug("Incoming message is a client send isComposing response.");
+        chatMsgHandler.triggerClientSendMsgResponse(incomingMessage);
+        break;
+      case notification:
+        log.debug("Incoming message is a notification response.");
+        notificationSmTriggerer.triggerNotificationResponse(incomingMessage);
+        break;
+      case queryMessageStatus:
+        log.debug("Incoming message is query message status response.");
+        chatMsgHandler.triggerQueryMsgStatusResponse(incomingMessage);
+        break;
+      case updateMessageStatus:
+        log.debug("Incoming message is a client display report response.");
+        chatMsgHandler.triggerDisplayReportResponse(incomingMessage);
+        break;
+      case querySessions:
+      case querySingleSession:
+        log.debug("Incoming message is a chat session(s) query response.");
+        chatMsgHandler.triggerChatSessionQueryResponse(incomingMessage, enumServiceAction);
+        break;
+      case queryMultiGroupSessionInfo:
+      case querySingleGroupSessionInfo:
+        log.debug("Incoming message is a group session info query response.");
+        chatMsgHandler.triggerGroupSessionInfoQueryResponse(incomingMessage, enumServiceAction);
+        break;
+      case querySingleMessage:
+      case queryMultipleMessages:
+        log.debug("Incoming message is a chat message retrieval response.");
+        chatMsgHandler.triggerMessageRetrievalResponse(incomingMessage, enumServiceAction);
+        break;
+      case deleteSingleMessage:
+      case deleteMultipleMessages:
+        log.debug("Incoming message is a chat message deletion response.");
+        chatMsgHandler.triggerMessageDeletionResponse(incomingMessage);
+        break;
+      case createGroup:
+        log.debug("Incoming message is a group session creation response.");
+        chatMsgHandler.triggerGroupCreationResponse(incomingMessage, false);
+        break;
+      case extendToGroup:
+        log.debug("Incoming message is an extend oneToOne to group session response.");
+        chatMsgHandler.triggerGroupCreationResponse(incomingMessage, true);
+        break;
+      case updateGroupProperties:
+        log.debug("Incoming message is an update group properties response.");
+        chatMsgHandler.triggerUpdateGroupPropertiesResponse(incomingMessage);
+        break;
+      case acceptInvitation:
+        log.debug("Incoming message is a group session invitation acceptance response.");
+        chatMsgHandler.triggerAcceptGroupInvitationResponse(incomingMessage);
+        break;
+      case addGroupAdmin:
+        log.debug("Incoming message is a group admin adding response.");
+        chatMsgHandler.triggerGroupAdminAddingResponse(incomingMessage);
+        break;
+      case declineInvitationOrLeaveGroup:
+      case removeParticipant:
+        log.debug("Incoming message is a participant removal / decline invitation request.");
+        chatMsgHandler.triggerRemoveParticipantResponse(incomingMessage);
+        break;
+      case deleteGroup:
+        log.debug("Incoming message is a group session deletion response.");
+        chatMsgHandler.triggerGroupSessionDeletionResponse(incomingMessage);
+        break;
+      case addParticipant:
+        log.debug("Incoming message is a group participant addition response.");
+        chatMsgHandler.triggerAddParticipantResponse(incomingMessage);
+        break;
+      case queryMultipleParticipants:
+      case querySingleParticipant:
+        log.debug("Incoming message is a group participant(s) query response.");
+        chatMsgHandler.triggerGroupParticipantQueryResponse(incomingMessage, enumServiceAction);
+        break;
+      default:
+        log.debug("Incoming response has an unhandled serviceAction:{} cannot proceed!", serviceAction);
+        break;
+    }
+  }
+
+  /**
+   * Handles incoming messages which have "notification" messageType
+   *
+   * @param incomingMessage
+   * @param serviceAction
+   */
+  private void handleIncomingNotification(final Message incomingMessage,
+      final String serviceAction) {
+    ServiceAction enumServiceAction = ServiceAction.valueOf(serviceAction);
+
+    switch (enumServiceAction) {
+      case receiveSentMessage:
+      case receiveComposing:
+      case receiveSentComposing:
+      case receiveStatus:
+      case updateParticipantStatus:
+      case sessionInvitation:
+      case sessionCancelled:
+      case sessionEnded:
+      case addGroupAdmin:
+      case msgDeletionNotification:
+      case updateGroupProperties:
+        log.debug(String.format("Incoming message is an incoming %s notification.", serviceAction));
+        notificationHandler.handleGenericNotification(incomingMessage, enumServiceAction);
+        break;
+      case gone:
+        log.debug("Incoming message is a gone notification!");
+        subscriptionSmTriggerer.triggerGone(incomingMessage);
+        break;
+      default:
+        log.debug("Incoming notification has an unhandled serviceAction:{} cannot proceed!", serviceAction);
+        break;
+    }
+  }
+
+  /**
+   * 
+   * @param incomingMessage
+   * @return
+   */
+  private boolean validateAndMapServiceData(Message incomingMessage) {
+    MessageParams incomingMessageParams = incomingMessage.getMessageParams();
+
+    // First try and validate the serviceData, only if it's coming from the restgateway
+    if (MsName.restamqpgw.name().equals(incomingMessageParams.getOriginatingMS())) {
+      try {
+        jsonValidator.validateJsonSchema(incomingMessage,
+            incomingMessage.getServiceData().toString(), ServiceData.class);
+      } catch (UserInputValidationException ex) {
+        MessageType incomingMessageType = incomingMessageParams.getType();
+        if (incomingMessageType.equals(MessageType.request)) {
+          log.error("User input validation has failed! Sending a response to the restgateway.", ex);
+          amqpSender.sendResponse(ex.getFailedValidationMessage(),
+              incomingMessageParams.getTransactionID(),
+              incomingMessageParams.getCalledMessageQueue());
+        } else {
+          log.error("User input validation has failed!", ex);
+        }
+
+        return false;
+      }
+    }
+
+    // If validation is successful, we will map it into the incomingMessage object
+    try {
+      ServiceData data =
+          MessageFactory.getInstance().getServiceData(incomingMessage, ServiceData.class);
+      incomingMessage.setServiceData(data);
+    } catch (Exception ex) {
+      log.error("Service data cannot be retrieved due to the following exception: ", ex);
+      sendSeriousErrorFailureMessage(incomingMessage);
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * 
+   * @param incomingMessage
+   */
+  private void sendSeriousErrorFailureMessage(Message incomingMessage) {
+    OmaErrorMessageType omaFailure = OmaErrorMessageType.GENERIC_SERVICE_ERROR;
+    String[] variables =
+        {"Serious error occurred with incoming amqp message handling; please check logs", "500"};
+    amqpSender.sendOmaFailureResponse(incomingMessage, omaFailure.getMessageId(),
+        omaFailure.getText(), variables, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  /**
+   * 
+   * @param incomingMessage
+   */
+  private void sendResourceNotFoundFailureMessage(Message incomingMessage) {
+    log.error("Specified resource does not exist!");
+    OmaErrorMessageType omaFailure = OmaErrorMessageType.BASIC_INVALID_INPUT;
+    String[] variables = {"url"};
+    amqpSender.sendOmaFailureResponse(incomingMessage, omaFailure.getMessageId(),
+        omaFailure.getText(), variables, HttpStatus.BAD_REQUEST);
+  }
+}
