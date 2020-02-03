@@ -38,7 +38,9 @@ public class Main2 {
                         return finder.find(file, pattern);
                     }
                 });
-                //3 farklı thread olusturuldu , thread'ler asenkron olarak taskı işledi, taskı tamamlayan thread map'e resultu yazdı.
+                //Main thread callable threadlere taskı assign etti ve map'e yazdı. Bu map'te future nesnesinin referansı tutuluyor.
+                //Thread, taskı tamamlayınca map içerisinde tamamlanmış taskın resultu olmuş olacak.
+                //Ayrıca get() metotunu kullanıyorsak otomatik olarak thread'in taskının tamamlanmış olmasını beklemek zorunda kalmış olacağız.
                 resultMap.put(file.getName(), future);
             }
 
@@ -68,6 +70,7 @@ public class Main2 {
             while (!future.isDone()) {
                 // Passing the CPU to other threads so that they can complete the operation.
                 // With out this we are simply keeping the CPU in loop and wasting its time.
+                //Main thread fedekarlık yapıyor. CPU'yu thread'lerin taskı tamamlaması için main thread'in fedakarlık yapmasına yarıyor bu metot.
                 Thread.yield();
             }
         }
