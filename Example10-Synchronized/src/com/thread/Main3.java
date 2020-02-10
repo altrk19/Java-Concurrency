@@ -12,7 +12,7 @@ class MyList {
 
     public synchronized void addValue(String value) {
         try {
-            Thread.sleep(1000);
+            Thread.sleep(10000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -28,7 +28,6 @@ class MyList {
             System.out.println(str);
         }
     }
-
 }
 
 class MyThread3 extends Thread {
@@ -51,16 +50,10 @@ public class Main3 {
         myList.addValueNoSynchronized("1");
         myList.addValueNoSynchronized("2");
 
-        System.out.println("hello");
         MyThread3 t1 = new MyThread3(myList);
         MyThread3 t2 = new MyThread3(myList);
 
         t1.start();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         t2.start();
 
         try {
@@ -72,6 +65,14 @@ public class Main3 {
 
         myList.print();
     }
-
-
 }
+/*
+Output:
+1
+2
+test
+test
+ */
+
+//Bu şekilde 2 farklı synchronization metotu kullanmak thread senkronizasyon sorununa yol açabilir.
+//Bunun yerine listeyi locklamak ve liste üzerinde işlem yapmak daha mantıklıdır.

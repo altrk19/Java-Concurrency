@@ -1,0 +1,14 @@
+
+dsquid:S2142-"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8“‹Û‚.
+dsquid:S2142"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8“‹Û‚.
+Fsquid:S1148/"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8“‹Û‚.
+Usquid:S1135"2Complete the task associated to this TODO comment.(ÕÌ®şÿÿÿÿ8“‹Û‚.
+Nsquid:S2446%"0"notify" may not wake up the appropriate thread.(­ÀôÉ8¤©¬Û‚.
+®%squid:RedundantThrowsDeclarationCheckZ"wRemove the declaration of thrown exception 'java.lang.InterruptedException', as it cannot be thrown from method's body.(º™Ú78“‹Û‚.
+Fsquid:S1148"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8“‹Û‚.
+Usquid:S1135."2Complete the task associated to this TODO comment.(ÕÌ®şÿÿÿÿ8“‹Û‚.
+Nsquid:S24464"0"notify" may not wake up the appropriate thread.(­ÀôÉ8¤©¬Û‚.
+V
+squid:S1065"9Replace this use of System.out or System.err by a logger.(ÇŠÉ£8ôÌ¶Û‚.
+[
+squid:S106$"9Replace this use of System.out or System.err by a logger.(çÈÄ§şÿÿÿÿ8·µÛ‚.
