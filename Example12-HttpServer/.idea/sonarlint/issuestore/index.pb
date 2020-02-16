@@ -1,0 +1,21 @@
+
+V
+&src/com/thread/http/utils/IOUtils.java,6\1\61cb783bd3d7c1e3d084792c04e6d591561fb157
+[
++src/com/thread/http/ServiceRequestTask.java,a\4\a43eb02e62413432f790a9ca7a4dd14520686cf6
+C
+src/resources/a.txt,d\6\d6a143ab284fced9e3ada724047366f6ba02a43d
+C
+src/resources/b.txt,3\c\3cc66ae303588cc5e81dc8718d63233676e21b96
+H
+src/resources/index.html,0\f\0fe8d228d89d8dfc32387109d94a923b1f928e87
+`
+0src/com/thread/http/utils/HttpResponseUtils.java,5\5\5522cf7af8326abe9e6864987b1d9562ebeff929
+O
+src/com/thread/http/Server.java,0\7\073594f65225c017ad3c896ab555843f6f92f4ca
+g
+7src/com/thread/http/request/handler/RequestHandler.java,4\9\4944b3f70207743748f7559937b82e3fc622072c
+]
+-src/com/thread/http/utils/ResourceLoader.java,4\c\4c48685be2b9b82712343d656f5225d960f6e793
+X
+(src/com/thread/http/utils/HttpUtils.java,1\5\15331055a521df8ef3bef70ce39ab46612d48387
