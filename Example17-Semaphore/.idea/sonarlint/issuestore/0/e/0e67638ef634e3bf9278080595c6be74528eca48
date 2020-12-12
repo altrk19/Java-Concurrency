@@ -1,6 +1,0 @@
-
-dsquid:S2142"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8¨Ç×õ„.
-Xsquid:S1161":Add the "@Override" annotation above this method signature(“–ýþ8¨Ç×õ„.
-V
-squid:S106"9Replace this use of System.out or System.err by a logger.(×’ÐÜ8¨Ç×õ„.
-Fsquid:S1148"#Use a logger to log this exception.(€ÉÔ…ýÿÿÿÿ8¨Ç×õ„.

@@ -1,0 +1,22 @@
+
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(Úî¿›şÿÿÿÿ8ı¢œã.
+E
+java:S11488"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8Âò±œã.
+J
+java:S1604"(Make this anonymous inner class a lambda(ÿ«òÄÿÿÿÿÿ8¿Ü‘œã.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(Ôõ˜©şÿÿÿÿ8Ñ¨Ÿœã.
+c
+java:S2142,"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8´¶œã.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(’Ò›¡øÿÿÿÿ8¿Ü‘œã.
+Z	java:S106/"9Replace this use of System.out or System.err by a logger.(Ôõ˜©şÿÿÿÿ8œ¢­œã.
+J
+java:S1604"(Make this anonymous inner class a lambda(¢ÜİÑüÿÿÿÿ8Ñ¨Ÿœã.
+n	java:S101"MRename this class name to match the regular expression '^[A-Z][a-zA-Z0-9]*$'.(ÕÈ»ÿùÿÿÿÿ8ß”œã.
+Z	java:S106:"9Replace this use of System.out or System.err by a logger.(º¨ïŸüÿÿÿÿ8œ¢­œã.
+J
+java:S1604'"(Make this anonymous inner class a lambda(¢ÜİÑüÿÿÿÿ8œ¢­œã.
+E
+java:S1148-"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8´¶œã.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(ŸÉ¡èÿÿÿÿÿ8Ûóšœã.
+Q
+java:S3740"/Provide the parametrized type for this generic.(ÿ«òÄÿÿÿÿÿ8½Æ˜œã.

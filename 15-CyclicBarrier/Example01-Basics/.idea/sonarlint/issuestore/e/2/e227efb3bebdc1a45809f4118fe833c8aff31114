@@ -1,0 +1,16 @@
+
+U	java:S106-"9Replace this use of System.out or System.err by a logger.(Š°‰Ø8ù¢˜Âã.
+W
+java:S1161":Add the "@Override" annotation above this method signature(“–ış8ø¢˜Âã.
+W
+java:S1161 ":Add the "@Override" annotation above this method signature(“–ış8ø¢˜Âã.
+h
+java:S2142#"FEither re-interrupt this method or rethrow the "InterruptedException".(ÿÑ¨çıÿÿÿÿ8ù¢˜Âã.
+E
+java:S1148"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8ø¢˜Âã.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(“ë“ 8ø¢˜Âã.
+Z	java:S106'"9Replace this use of System.out or System.err by a logger.(èøıÿÿÿÿ8ù¢˜Âã.
+h
+java:S2142"FEither re-interrupt this method or rethrow the "InterruptedException".(ÿÑ¨çıÿÿÿÿ8ø¢˜Âã.
+E
+java:S1148$"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8ø¢˜Âã.

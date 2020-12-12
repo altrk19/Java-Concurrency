@@ -1,0 +1,10 @@
+
+@
+java:S1148$"#Use a logger to log this exception.(Ç’Çê8À¾¥Äã.
+@
+java:S11481"#Use a logger to log this exception.(Ç’Çê8À¾¥Äã.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(’ú¸Þøÿÿÿÿ8À¾¥Äã.
+h
+java:S2142#"FEither re-interrupt this method or rethrow the "InterruptedException".(è®ã¶øÿÿÿÿ8À¾¥Äã.
+h
+java:S21420"FEither re-interrupt this method or rethrow the "InterruptedException".(è®ã¶øÿÿÿÿ8À¾¥Äã.

@@ -1,0 +1,13 @@
+
+W
+java:S1854":Remove this useless assignment to local variable "result".(ºœıÅ8°²Öœã.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(Ôõ˜©şÿÿÿÿ8ØÙœã.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(’Ò›¡øÿÿÿÿ8ÈÅÔœã.
+Q
+java:S3740"/Provide the parametrized type for this generic.(ÿ«òÄÿÿÿÿÿ8ÈÅÔœã.
+J
+java:S1604"(Make this anonymous inner class a lambda(ÿ«òÄÿÿÿÿÿ8ÈÅÔœã.
+g	java:S101"MRename this class name to match the regular expression '^[A-Z][a-zA-Z0-9]*$'.(©™ÓÑÿÿÿÿÿ
+H
+java:S1481"+Remove this unused "result" local variable.(ºœıÅ8°²Öœã.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(èİäœ8¬åÚœã.

@@ -1,27 +1,0 @@
-
-[
-squid:S106+"9Replace this use of System.out or System.err by a logger.(†¶­öúÿÿÿÿ8ÒÄ®ø„.
-Hsquid:S00108")Either remove or fill this block of code.(ä ¹€8š‡£ø„.
-dsquid:S21424"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8Õœ¨ø„.
-[
-squid:S106/"9Replace this use of System.out or System.err by a logger.(†¶­öúÿÿÿÿ8ÒÄ®ø„.
-[
-squid:S106*"9Replace this use of System.out or System.err by a logger.(†¶­öúÿÿÿÿ8¥«ø„.
-Hsquid:S001084")Either remove or fill this block of code.(ä ¹€8Õœ¨ø„.
-dsquid:S2142"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8š‡£ø„.
-squid:S1192*"^Define a constant instead of duplicating this literal "Waiting threads complete task" 8 times.(†¶­öúÿÿÿÿ8ÒÄ®ø„.
-[
-squid:S106,"9Replace this use of System.out or System.err by a logger.(†¶­öúÿÿÿÿ8ÒÄ®ø„.
-[
-squid:S106-"9Replace this use of System.out or System.err by a logger.(†¶­öúÿÿÿÿ8ÒÄ®ø„.
-esquid:UselessImportCheck":Remove this unused import 'java.util.concurrent.TimeUnit'.(Æ™ş8Íş ø„.
-[
-squid:S1060"9Replace this use of System.out or System.err by a logger.(†¶­öúÿÿÿÿ8úú¼ø„.
-[
-squid:S106."9Replace this use of System.out or System.err by a logger.(†¶­öúÿÿÿÿ8ÒÄ®ø„.
-V
-squid:S1068"9Replace this use of System.out or System.err by a logger.(‡åÒ8Õœ¨ø„.
-[
-squid:S1061"9Replace this use of System.out or System.err by a logger.(†¶­öúÿÿÿÿ8úú¼ø„.
-V
-squid:S106"9Replace this use of System.out or System.err by a logger.(×çŒ†8Íş ø„.

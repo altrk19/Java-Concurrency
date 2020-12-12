@@ -1,0 +1,10 @@
+
+U	java:S106"9Replace this use of System.out or System.err by a logger.(µèê8‡‘ıÀã.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(µèê8„¤şÀã.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(µèê8„¤şÀã.
+c
+java:S2142"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8ä•üÀã.
+v
+java:S1192"YDefine a constant instead of duplicating this literal "countDownLatch decreased" 3 times.(µèê8„¤şÀã.
+E
+java:S1148"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8ä•üÀã.

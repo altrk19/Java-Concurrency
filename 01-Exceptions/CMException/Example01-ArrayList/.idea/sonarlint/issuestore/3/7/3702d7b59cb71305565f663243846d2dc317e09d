@@ -1,0 +1,12 @@
+
+Z	java:S106#"9Replace this use of System.out or System.err by a logger.(ã¿¢Ôùÿÿÿÿ8®„È€â.
+Z	java:S1064"9Replace this use of System.out or System.err by a logger.(­¸¤Êúÿÿÿÿ8±€â.
+U	java:S1066"9Replace this use of System.out or System.err by a logger.(ê³ŞÎ8Ã¯›€â.
+K
+java:S1144&".Remove this unused private "solution1" method.(ÏóÁà8õä´€â.
+J
+java:S1481"-Remove this unused "iterator" local variable.(²±Î‘8¼ì–€â.
+b	java:S101"MRename this class name to match the regular expression '^[A-Z][a-zA-Z0-9]*$'.(Ï§Ş›
+Y
+java:S1854"<Remove this useless assignment to local variable "iterator".(²±Î‘8¼ì–€â.
+U	java:S1065"9Replace this use of System.out or System.err by a logger.(ã€‡’8œ€â.

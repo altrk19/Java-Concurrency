@@ -1,0 +1,8 @@
+
+U	java:S106"9Replace this use of System.out or System.err by a logger.(ÀŽÜ¨8ÐÕûªá.
+U	java:S899":Do something with the "boolean" value returned by "offer".(ûÝ³h8ÿÂ¬«á.
+V	java:S899":Do something with the "boolean" value returned by "offer".(ÕÞÿâ8â–­«á.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(ÀŽÜ¨8†›ýªá.
+V	java:S899":Do something with the "boolean" value returned by "offer".(¸‰Œä8â–­«á.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(ÀŽÜ¨8ôçõªá.
+T	java:S106"9Replace this use of System.out or System.err by a logger.(¦Ð¨Y8°¸ùªá.

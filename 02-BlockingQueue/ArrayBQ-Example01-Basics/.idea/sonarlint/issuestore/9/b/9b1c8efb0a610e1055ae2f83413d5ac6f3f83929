@@ -1,0 +1,11 @@
+
+V	java:S899
+":Do something with the "boolean" value returned by "offer".(°€ê¤8¿ó¡«á.
+[	java:S899":Do something with the "boolean" value returned by "offer".(¦š¢âøÿÿÿÿ8Ô™¢«á.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(åë¹‚şÿÿÿÿ8äÄíªá.
+V	java:S899":Do something with the "boolean" value returned by "offer".(ÑÙë8Ô™¢«á.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(ÀÜ¨8¾Æåªá.
+c
+java:S2142"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8À¤ëªá.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(ÀÜ¨8÷¨ñªá.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(åİ®ÿÿÿÿÿ8äÄíªá.

@@ -1,0 +1,11 @@
+
+W	java:S899&";Do something with the "Integer" value returned by "remove".(ß‚ë¤8çö’¬á.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(˜¸—µúÿÿÿÿ8ìÈ…¬á.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(˜¸—µúÿÿÿÿ8»ı¬á.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(×Ş‹ô8Ğ‰¬á.
+Z	java:S106-"9Replace this use of System.out or System.err by a logger.(˜¸—µúÿÿÿÿ8’Ñ–¬á.
+U	java:S106""9Replace this use of System.out or System.err by a logger.(×Ş‹ô8¦ü‘¬á.
+z
+java:S1192"XDefine a constant instead of duplicating this literal "Linked Blocking Deque: " 5 times.(˜¸—µúÿÿÿÿ8Èì“¬á.
+Z	java:S1062"9Replace this use of System.out or System.err by a logger.(˜¸—µúÿÿÿÿ8Å˜¬á.
+Z	java:S106("9Replace this use of System.out or System.err by a logger.(˜¸—µúÿÿÿÿ8Èì“¬á.
