@@ -1,9 +1,14 @@
 
-N
-squid:S106"9Replace this use of System.out or System.err by a logger.(ƒÚáB
-]squid:S2142>"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€
-Fsquid:S1148"#Use a logger to log this exception.(€ÉÔ…ýÿÿÿÿ8äìüí‚.
-dsquid:S2142"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8äìüí‚.
-?squid:S1148?"#Use a logger to log this exception.(€ÉÔ…ýÿÿÿÿ
-asquid:S2276"CReplace the call to "Thread.sleep(...)" with a call to "wait(...)".(ø¸¼8äìüí‚.
-Qsquid:S1161(":Add the "@Override" annotation above this method signature(“–ýþ
+E
+java:S1148"#Use a logger to log this exception.(€ÉÔ…ýÿÿÿÿ8ô­ßÄþ.
+E
+java:S1148?"#Use a logger to log this exception.(€ÉÔ…ýÿÿÿÿ8ô­ßÄþ.
+c
+java:S2142"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8ô­ßÄþ.
+`
+java:S2276"CReplace the call to "Thread.sleep(...)" with a call to "wait(...)".(ø¸¼8ô­ßÄþ.
+T	java:S106"9Replace this use of System.out or System.err by a logger.(ƒÚáB8ô­ßÄþ.
+W
+java:S1161(":Add the "@Override" annotation above this method signature(“–ýþ8ô­ßÄþ.
+c
+java:S2142>"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8ô­ßÄþ.

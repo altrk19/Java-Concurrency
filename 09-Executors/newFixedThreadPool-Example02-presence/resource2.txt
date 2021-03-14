@@ -1,0 +1,10 @@
+/rest/version/1/user/ua-u1@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea61
+/rest/version/1/user/ua-u2@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea62
+/rest/version/1/user/ua-u3@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea63
+/rest/version/1/user/ua-u4@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea64
+/rest/version/1/user/ua-u5@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea65
+/rest/version/1/user/ua-u6@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea66
+/rest/version/1/user/ua-u7@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea67
+/rest/version/1/user/ua-u8@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea68
+/rest/version/1/user/ua-u9@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea69
+/rest/version/1/user/ua-u10@traffic1.com/websocket/ws-d6f9e6e7-f9be-4cda-a234-8ff7a7acea70

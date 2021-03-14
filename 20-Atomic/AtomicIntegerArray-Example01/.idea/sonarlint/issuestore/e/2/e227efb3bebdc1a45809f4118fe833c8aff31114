@@ -1,0 +1,15 @@
+
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(ËâÙèüÿÿÿÿ8€ä­´å.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(¦«Âãøÿÿÿÿ8øàª´å.
+I
+java:S1481!"-Remove this unused "oldValue" local variable.(è³À{8ÊÂ´´å.
+[
+java:S1854$"?Remove this useless assignment to local variable "newValueDec".(‰†Ä8§ñÁ´å.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(ûÈ˜ ùÿÿÿÿ8ä°¼´å.
+X
+java:S1854!"<Remove this useless assignment to local variable "oldValue".(è³À{8ÊÂ´´å.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(‘çßï8„Š²´å.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(ß¨Àıÿÿÿÿ8¾¶­´å.
+Z	java:S106"9Replace this use of System.out or System.err by a logger.(˜Ô”×ÿÿÿÿÿ8„Ş¥´å.
+L
+java:S1481$"0Remove this unused "newValueDec" local variable.(‰†Ä8ü“Â´å.

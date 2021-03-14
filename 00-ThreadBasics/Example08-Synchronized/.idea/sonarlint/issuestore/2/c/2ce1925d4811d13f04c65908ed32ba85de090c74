@@ -1,7 +1,10 @@
 
-Xsquid:S11610":Add the "@Override" annotation above this method signature(“–ış8ÍÎÓ‚.
-V
-squid:S106F"9Replace this use of System.out or System.err by a logger.(…ş‘ñ8İ‚ÖÓ‚.
-Fsquid:S1148D"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8İ‚ÖÓ‚.
-Fsquid:S1148!"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8ÊéÌÓ‚.
-dsquid:S2142C"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8İ‚ÖÓ‚.
+E
+java:S1148!"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8÷­ßÄş.
+E
+java:S1148D"#Use a logger to log this exception.(€ÉÔ…ıÿÿÿÿ8÷­ßÄş.
+W
+java:S11610":Add the "@Override" annotation above this method signature(“–ış8÷­ßÄş.
+c
+java:S2142C"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€8÷­ßÄş.
+U	java:S106F"9Replace this use of System.out or System.err by a logger.(…ş‘ñ8÷­ßÄş.
